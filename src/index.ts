@@ -2,6 +2,9 @@ import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
+// Import Routes
+import AuthRouter from './api/auth/auth.routes';
+
 dotenv.config();
 
 const app: Express = express();
@@ -32,6 +35,10 @@ app.get(`${baseUrl}/health`, (_req: Request, res: Response) => {
         message: 'Server is running fine',
     });
 });
+
+// Auth Routes
+const authRouter = new AuthRouter();
+app.use(`${baseUrl}/auth`, authRouter.getRouter());
 
 // 404 - Must be be below all other routes
 app.use((_req: Request, res: Response) => {
