@@ -22,7 +22,11 @@ export default class TaskController {
             }
 
             const result = await this.taskService.getTasks(id, role);
-            res.status(200).json(result);
+            res.status(200).json({
+                status: "success",
+                message: "Tasks fetched successfully",
+                data: result
+            });
         } catch (error) {
             next(error);
         }
@@ -61,7 +65,11 @@ export default class TaskController {
             const taskIdInt = parseInt(taskIdParam, 10);
             const { updates } = req.body;
             const result = await this.taskService.updateTask(id, role, taskIdInt, updates);
-            res.status(200).json(result);
+            res.status(200).json({
+                status: "success",
+                message: "Task updated successfully",
+                data: result
+            });
         } catch (error) {
             next(error);
         }
@@ -71,7 +79,11 @@ export default class TaskController {
         try {
             const { id } = req.params;
             const result = await this.taskService.deleteTask(id);
-            res.status(200).json(result);
+            res.status(200).json({
+                status: "success",
+                message: "Task deleted successfully",
+                data: result
+            });
         } catch (error) {
             next(error);
         }

@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import UserService from './user.service';
-import sequelize from '../../utils/sequelize';
 
 export default class UserController {
     private userService: UserService;
@@ -20,7 +19,11 @@ export default class UserController {
             }
             req.body.createdBy = req.user?.id;
             const result = await this.userService.registerUser(req.body);
-            res.status(201).json(result);
+            res.status(201).json({
+                status: "success",
+                message: "User registered successfully",
+                data: result
+            });
         } catch (error) {
             next(error);
         }
@@ -30,9 +33,11 @@ export default class UserController {
     async getAllUsers(req: Request, res: Response, next: NextFunction) {
         try {
             const users = await this.userService.getAllUsers();
-            // Exclude the current admin and other admins
-            const filteredUsers = users.filter((user: any) => user.id !== req.user?.id && user.role !== 'admin');
-            res.status(200).json(filteredUsers);
+            res.status(200).json({
+                status: "success",
+                message: "Users fetched successfully",
+                data: users
+            });
         } catch (error) {
             next(error);
         }

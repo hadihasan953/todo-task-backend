@@ -4,11 +4,7 @@ export default class TaskService {
     public async getTasks(id: number, role: string) {
         const userId = id;
         const userRole = role;
-        // Implement get logic here
-        return {
-            status: "success",
-            message: "Fetched task",
-        };
+        // TODO
     }
 
     public async createTask(id: number, title: string, description: string) {
@@ -30,19 +26,10 @@ export default class TaskService {
         const userId = id;
         const userRole = role;
         const taskID = taskId;
-        // Implement update logic here
-        return {
-            status: "success",
-            message: `Task ${id} updated successfully`,
-            updates
-        };
+        // TODO
     }
 
     public async deleteTask(id: string) {
-        // Implement delete logic here
-        return {
-            status: "success",
-            message: `Task ${id} deleted successfully`
-        };
+        // TODO
     }
 }
