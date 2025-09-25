@@ -1,3 +1,5 @@
+import sequelize from "../../utils/sequelize";
+
 export default class AuthService {
 
     public async login(loginData: string, password: string) {
@@ -6,5 +8,9 @@ export default class AuthService {
             status: "success",
             message: "User logged in successfully"
         }
+    }
+    public async verifyToken(token: string) {
+        // Token verification logic (mock for now)
+        return { valid: true };
     }
 }

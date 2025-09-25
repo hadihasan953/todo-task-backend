@@ -1,9 +1,12 @@
 import express, { Express, Request, Response } from 'express';
+import sequelize from './utils/sequelize';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
 // Import Routes
 import AuthRouter from './api/auth/auth.routes';
+import TaskRouter from './api/task/task.routes';
+import UserRouter from './api/user/user.routes';
 
 dotenv.config();
 
@@ -40,6 +43,16 @@ app.get(`${baseUrl}/health`, (_req: Request, res: Response) => {
 const authRouter = new AuthRouter();
 app.use(`${baseUrl}/auth`, authRouter.getRouter());
 
+
+// Task routes
+const taskRouter = new TaskRouter();
+app.use(`${baseUrl}/task`, taskRouter.getRouter());
+
+// User routes
+const userRouter = new UserRouter();
+app.use(`${baseUrl}/user`, userRouter.getRouter());
+
+
 // 404 - Must be be below all other routes
 app.use((_req: Request, res: Response) => {
     res.status(404).json({
@@ -49,6 +62,15 @@ app.use((_req: Request, res: Response) => {
     });
 });
 
+
 app.listen(port, () => {
+    // Test DB connection on startup
+    sequelize.authenticate()
+        .then(() => {
+            console.log('Database connection established successfully.');
+        })
+        .catch((err: any) => {
+            console.error('Unable to connect to the database:', err);
+        });
     console.log(`Server is running on: http://localhost:${port}${baseUrl}`); // http://localhost:3000/api/v1/
 });

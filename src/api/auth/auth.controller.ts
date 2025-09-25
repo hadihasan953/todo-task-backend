@@ -18,4 +18,14 @@ export default class AuthController {
             next(error);
         }
     }
+
+    async verifyToken(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { token } = req.body;
+            const result = await this.authService.verifyToken(token);
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
 }

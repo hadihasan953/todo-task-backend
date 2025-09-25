@@ -15,7 +15,11 @@ export default class AuthRouter {
         this.router.post(
             "/login",
             this.authController.login
-        )
+        );
+        this.router.post(
+            "/verify",
+            this.authController.verifyToken
+        );
     }
 
     public getRouter(): Router {
