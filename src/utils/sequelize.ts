@@ -1,7 +1,6 @@
 import { Sequelize } from 'sequelize';
 
-// Update these values with your actual database credentials
-const sequelize = new Sequelize('database_name', 'username', 'password', {
+const sequelize = new Sequelize('database_name', 'root', '', {
     host: 'localhost',
     dialect: 'mysql',
 });
