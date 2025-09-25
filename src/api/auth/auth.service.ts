@@ -1,16 +1,35 @@
-import sequelize from "../../utils/sequelize";
+import { generateAccessToken } from "../../utils/generateToken";
+import bycrypt from 'bcrypt';
+import User from "../user/user.model";
 
 export default class AuthService {
 
-    public async login(loginData: string, password: string) {
-        // TODO: Implement login logic here
-        return {
-            status: "success",
-            message: "User logged in successfully"
+    public async login(email: string, password: string) {
+        try {
+            const user = await User.findOne({
+                where: {
+                    email
+                }
+            });
+
+            if (!user) {
+                throw new Error('Invalid email or password');
+            }
+
+            const isPasswordValid = await bycrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                throw new Error('Invalid email or password');
+            }
+
+            const token = generateAccessToken(user.id, user.role);
+
+            const plainUser = user.get({ plain: true });
+            const { password: _, ...userWithoutPassword } = plainUser;
+
+            return { user: userWithoutPassword, token };
+
+        } catch (error) {
+            throw new Error('Error during login: ' + (error as Error).message);
         }
-    }
-    public async verifyToken(token: string) {
-        // Token verification logic (mock for now)
-        return { valid: true };
     }
 }

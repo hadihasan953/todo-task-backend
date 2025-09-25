@@ -12,18 +12,21 @@ export default class AuthController {
     async login(req: Request, res: Response, next: NextFunction) {
         try {
             const { email, password } = req.body;
-            const result = await this.authService.login(email, password);
-            res.status(200).json(result);
-        } catch (error) {
-            next(error);
-        }
-    }
 
-    async verifyToken(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { token } = req.body;
-            const result = await this.authService.verifyToken(token);
-            res.status(200).json(result);
+            if (!email || !password) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "Email and password are required"
+                });
+            }
+
+            const result = await this.authService.login(email, password);
+
+            res.status(200).json({
+                status: "success",
+                message: "User logged in successfully",
+                data: result
+            });
         } catch (error) {
             next(error);
         }

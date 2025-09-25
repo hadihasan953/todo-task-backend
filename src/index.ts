@@ -1,7 +1,7 @@
 import express, { Express, Request, Response } from 'express';
-import sequelize from './utils/sequelize';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import { initializeDatabase } from './utils/initDatabase';
 
 // Import Routes
 import AuthRouter from './api/auth/auth.routes';
@@ -65,12 +65,12 @@ app.use((_req: Request, res: Response) => {
 
 app.listen(port, () => {
     // Test DB connection on startup
-    sequelize.authenticate()
-        .then(() => {
-            console.log('Database connection established successfully.');
-        })
-        .catch((err: any) => {
-            console.error('Unable to connect to the database:', err);
-        });
+    initializeDatabase().then(success => {
+        if (success) {
+            console.log('Database connected successfully');
+        } else {
+            console.log('Database connection failed');
+        }
+    });
     console.log(`Server is running on: http://localhost:${port}${baseUrl}`); // http://localhost:3000/api/v1/
 });

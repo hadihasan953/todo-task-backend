@@ -1,14 +1,35 @@
-import sequelize from '../../utils/sequelize';
+import Task from './task.model';
 
 export default class TaskService {
-    public async createTask(taskData: string) {
+    public async getTasks(id: number, role: string) {
+        const userId = id;
+        const userRole = role;
+        // Implement get logic here
         return {
             status: "success",
-            message: "Task created successfully"
+            message: "Fetched task",
+        };
+    }
+
+    public async createTask(id: number, title: string, description: string) {
+        const userId = id;
+        try {
+            const task = await Task.create({
+                'title': title,
+                'description': description,
+                'createdBy': userId
+            });
+
+            return task;
+        } catch (error) {
+            throw new Error('Error creating task: ' + (error as Error).message);
         }
     }
 
-    public async updateTask(id: string, updates: any) {
+    public async updateTask(id: number, role: string, taskId: number, updates: any) {
+        const userId = id;
+        const userRole = role;
+        const taskID = taskId;
         // Implement update logic here
         return {
             status: "success",
@@ -22,15 +43,6 @@ export default class TaskService {
         return {
             status: "success",
             message: `Task ${id} deleted successfully`
-        };
-    }
-
-    public async getTask(id: string) {
-        // Implement get logic here
-        return {
-            status: "success",
-            message: `Fetched task ${id}`,
-            task: { id }
         };
     }
 }

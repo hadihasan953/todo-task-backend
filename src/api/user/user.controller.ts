@@ -7,89 +7,32 @@ export default class UserController {
 
     constructor() {
         this.userService = new UserService();
-        this.createTask = this.createTask.bind(this);
-        this.createUser = this.createUser.bind(this);
-        this.getUser = this.getUser.bind(this);
-        this.updateUser = this.updateUser.bind(this);
-        this.deleteUser = this.deleteUser.bind(this);
-        this.assignTaskToUser = this.assignTaskToUser.bind(this);
-        this.getUserTasks = this.getUserTasks.bind(this);
-        this.getUsers = this.getUsers.bind(this);
-    }
-    async getUsers(req: Request, res: Response, next: NextFunction) {
-        try {
-            const result = await this.userService.getUsers();
-            res.status(200).json(result);
-        } catch (error) {
-            next(error);
-        }
+        this.registerUser = this.registerUser.bind(this);
+        this.getAllUsers = this.getAllUsers.bind(this);
     }
 
-    async createTask(req: Request, res: Response, next: NextFunction) {
+    // Admin-only registration
+    async registerUser(req: Request, res: Response, next: NextFunction) {
         try {
-            const { taskData } = req.body;
-            const result = await this.userService.createTask(taskData);
-            res.status(200).json(result);
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    async createUser(req: Request, res: Response, next: NextFunction) {
-        try {
-            // Only admin can create user
-            const result = await this.userService.createUser(req.body);
+            const { name, email, password } = req.body;
+            if (!name || !email || !password) {
+                return res.status(400).json({ message: 'Name, email, and password are required.' });
+            }
+            req.body.createdBy = req.user?.id;
+            const result = await this.userService.registerUser(req.body);
             res.status(201).json(result);
         } catch (error) {
             next(error);
         }
     }
 
-    async getUser(req: Request, res: Response, next: NextFunction) {
+    // Admin-only user listing
+    async getAllUsers(req: Request, res: Response, next: NextFunction) {
         try {
-            const { id } = req.body;
-            const result = await this.userService.getUser(id);
-            res.status(200).json(result);
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    async updateUser(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { id, updates } = req.body;
-            const result = await this.userService.updateUser(id, updates);
-            res.status(200).json(result);
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    async deleteUser(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { id } = req.body;
-            const result = await this.userService.deleteUser(id);
-            res.status(200).json(result);
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    async assignTaskToUser(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { userId, taskId } = req.body;
-            const result = await this.userService.assignTaskToUser(userId, taskId);
-            res.status(200).json(result);
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    async getUserTasks(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { userId } = req.body;
-            const result = await this.userService.getUserTasks(userId);
-            res.status(200).json(result);
+            const users = await this.userService.getAllUsers();
+            // Exclude the current admin and other admins
+            const filteredUsers = users.filter((user: any) => user.id !== req.user?.id && user.role !== 'admin');
+            res.status(200).json(filteredUsers);
         } catch (error) {
             next(error);
         }

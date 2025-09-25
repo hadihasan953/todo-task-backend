@@ -1,5 +1,6 @@
 import { Router } from "express";
 import TaskController from "./task.controller";
+import { authorize } from "../../middlewares/auth.middleware";
 
 export default class TaskRouter {
     private router: Router;
@@ -11,23 +12,35 @@ export default class TaskRouter {
         this.initializeRoutes();
     }
     private initializeRoutes() {
-        this.router.post(
-            "/create",
-            this.taskController.createTask
-        )
+        // Get all tasks - for both users and admins
         this.router.get(
             "/get",
-            this.taskController.getTask
+            authorize,
+            this.taskController.getTasks
         )
+
+        // Create new task - for both users and admins
+        this.router.post(
+            "/create",
+            authorize,
+            this.taskController.createTask
+        )
+
+        // Update a task - for both users and admins
         this.router.put(
-            "/update",
+            "/update/:id",
+            authorize,
             this.taskController.updateTask
         )
+
+        // Delete a task - for both users and admins
         this.router.delete(
-            "/delete",
+            "/delete/:id",
+            authorize,
             this.taskController.deleteTask
         )
     }
+
     public getRouter(): Router {
         return this.router;
     }
