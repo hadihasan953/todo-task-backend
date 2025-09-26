@@ -1,5 +1,5 @@
 import { generateAccessToken } from "../../utils/generateToken";
-import bycrypt from 'bcrypt';
+import bcrypt from 'bcrypt';
 import User from "../user/user.model";
 
 export default class AuthService {
@@ -16,7 +16,7 @@ export default class AuthService {
                 throw new Error('Invalid email or password');
             }
 
-            const isPasswordValid = await bycrypt.compare(password, user.password);
+            const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
                 throw new Error('Invalid email or password');
             }

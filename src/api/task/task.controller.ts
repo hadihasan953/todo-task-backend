@@ -17,7 +17,7 @@ export default class TaskController {
         try {
             const { id, role } = req.user || {};
 
-            if (!id) {
+            if (id === undefined || id === null) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
 
@@ -57,7 +57,7 @@ export default class TaskController {
         try {
             const { id, role } = req.user || {};
 
-            if (!id) {
+            if (id === undefined || id === null) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
 
@@ -77,8 +77,19 @@ export default class TaskController {
 
     async deleteTask(req: Request, res: Response, next: NextFunction) {
         try {
-            const { id } = req.params;
-            const result = await this.taskService.deleteTask(id);
+            // Use authenticated user info (like other handlers) for authorization
+            const { id: userId, role } = req.user || {};
+            if (userId === undefined || userId === null) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+
+            const { id: taskIdParam } = req.params;
+            const taskIdInt = parseInt(taskIdParam, 10);
+            if (Number.isNaN(taskIdInt)) {
+                return res.status(400).json({ message: 'Invalid task id' });
+            }
+
+            const result = await this.taskService.deleteTask(userId, role, taskIdInt);
             res.status(200).json({
                 status: "success",
                 message: "Task deleted successfully",

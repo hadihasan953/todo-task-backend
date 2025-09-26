@@ -8,13 +8,16 @@ import AuthRouter from './api/auth/auth.routes';
 import TaskRouter from './api/task/task.routes';
 import UserRouter from './api/user/user.routes';
 
+// Centralized error handler
+import errorHandler from './middlewares/error.middleware';
+
 dotenv.config();
 
 const app: Express = express();
 
 const allowedOrigins = [
     'http://localhost:5500'
-]
+];
 
 app.use(cors({
     origin: allowedOrigins,
@@ -53,7 +56,7 @@ const userRouter = new UserRouter();
 app.use(`${baseUrl}/user`, userRouter.getRouter());
 
 
-// 404 - Must be be below all other routes
+// 404 - Must be below all other routes
 app.use((_req: Request, res: Response) => {
     res.status(404).json({
         status: 'fail',
@@ -62,6 +65,8 @@ app.use((_req: Request, res: Response) => {
     });
 });
 
+// Centralized error handling (must come after routes/404)
+app.use(errorHandler);
 
 app.listen(port, () => {
     // Test DB connection on startup

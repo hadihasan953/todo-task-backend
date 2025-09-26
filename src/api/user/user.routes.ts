@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authorize, authorizeAdmin } from '../../middlewares/auth.middleware';
 import UserController from './user.controller';
 
-export default class TaskRouter {
+export default class UserRouter {
     private router: Router
     private userController: UserController
 
