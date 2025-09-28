@@ -34,7 +34,6 @@ export default class TaskController {
 
     async createTask(req: Request, res: Response, next: NextFunction) {
         try {
-            console.log('Request user:', req.user);
             const { id } = req.user || {};
 
             if (id === undefined || id === null) {
