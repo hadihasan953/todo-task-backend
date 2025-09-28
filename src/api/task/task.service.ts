@@ -1,4 +1,5 @@
 import Task from './task.model';
+import { UniqueConstraintError } from 'sequelize';
 
 export default class TaskService {
     public async getTasks(id: number, role: string) {
@@ -24,11 +25,62 @@ export default class TaskService {
     public async createTask(id: number, title: string, description: string) {
         const userId = id;
         try {
-            const task = await Task.create({
-                'title': title,
-                'description': description,
-                'createdBy': userId
-            });
+            // compute smallest missing positive integer id (start from 1)
+            const rows = await Task.findAll({ attributes: ['id'], order: [['id', 'ASC']] });
+            const idList = rows
+                .map(r => (r.get('id') as number))
+                .filter(Boolean)
+                .sort((a, b) => a - b);
+
+            let nextId = 1;
+            for (const existingId of idList) {
+                if (existingId === nextId) {
+                    nextId++;
+                } else if (existingId > nextId) {
+                    break;
+                }
+            }
+
+            const payload: any = {
+                title,
+                description,
+                createdBy: userId,
+                id: nextId
+            };
+
+            // Attempt create; on unique id conflict (concurrent), recompute and retry
+            const maxAttempts = 3;
+            let attempt = 0;
+            let task;
+            while (attempt < maxAttempts) {
+                try {
+                    task = await Task.create(payload);
+                    break;
+                } catch (err) {
+                    if (err instanceof UniqueConstraintError) {
+                        attempt++;
+                        // recompute gap and retry
+                        const rows2 = await Task.findAll({ attributes: ['id'], order: [['id', 'ASC']] });
+                        const idList2 = rows2
+                            .map(r => (r.get('id') as number))
+                            .filter(Boolean)
+                            .sort((a, b) => a - b);
+
+                        let nextId2 = 1;
+                        for (const existingId2 of idList2) {
+                            if (existingId2 === nextId2) nextId2++;
+                            else if (existingId2 > nextId2) break;
+                        }
+                        payload.id = nextId2;
+                        continue;
+                    }
+                    throw err;
+                }
+            }
+
+            if (!task) {
+                throw new Error('Could not create task after retries.');
+            }
 
             return task;
         } catch (error) {

@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import User from './user.model';
+import { UniqueConstraintError } from 'sequelize';
 
 export default class UserService {
     // Admin-only registration
@@ -23,9 +24,55 @@ export default class UserService {
                 email: normalizedEmail,
                 password: hashed
             };
-            if (userId) payload.id = userId;
 
-            const user = await User.create(payload);
+            if (userId) {
+                // If caller provided an id, use it
+                payload.id = userId;
+            } else {
+                // Compute smallest missing positive integer id
+                const rows = await User.findAll({ attributes: ['id'], order: [['id', 'ASC']] });
+                const idList = rows.map(r => (r.get('id') as number)).filter(Boolean).sort((a, b) => a - b);
+                let nextId = 1;
+                for (const id of idList) {
+                    if (id === nextId) {
+                        nextId++;
+                    } else if (id > nextId) {
+                        break;
+                    }
+                }
+                payload.id = nextId;
+            }
+
+            // Try creating the user; if id conflict occurs (concurrent insert), recompute and retry a few times
+            const maxAttempts = 3;
+            let attempt = 0;
+            let user;
+            while (attempt < maxAttempts) {
+                try {
+                    user = await User.create(payload);
+                    break;
+                } catch (err) {
+                    if (err instanceof UniqueConstraintError && !userId) {
+                        // Recompute gap and retry
+                        attempt++;
+                        const rows2 = await User.findAll({ attributes: ['id'], order: [['id', 'ASC']] });
+                        const idList2 = rows2.map(r => (r.get('id') as number)).filter(Boolean).sort((a, b) => a - b);
+                        let nextId2 = 1;
+                        for (const id of idList2) {
+                            if (id === nextId2) nextId2++;
+                            else if (id > nextId2) break;
+                        }
+                        payload.id = nextId2;
+                        continue;
+                    }
+                    throw err;
+                }
+            }
+
+            if (!user) {
+                throw new Error('Could not create user after retries.');
+            }
+
             const plainUser = user.get({ plain: true });
             const { password: _, ...userWithoutPassword } = plainUser;
             return userWithoutPassword;
