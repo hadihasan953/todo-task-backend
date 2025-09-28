@@ -63,7 +63,8 @@ export default class TaskController {
 
             const { id: taskIdParam } = req.params;
             const taskIdInt = parseInt(taskIdParam, 10);
-            const { updates } = req.body;
+            // Accept either { updates: { title, description } } or raw body { title, description }
+            const updates = (req.body && (req.body.updates ?? req.body)) || {};
             const result = await this.taskService.updateTask(id, role, taskIdInt, updates);
             res.status(200).json({
                 status: "success",
