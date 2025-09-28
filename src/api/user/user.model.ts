@@ -25,6 +25,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     public readonly updatedAt!: Date;
 }
 
+// ...existing code...
 User.init({
     id: {
         type: DataTypes.INTEGER,
@@ -53,6 +54,18 @@ User.init({
         type: DataTypes.INTEGER,
         allowNull: true,
     },
-}, { sequelize, modelName: 'User' });
-
+}, {
+    sequelize,
+    modelName: 'User',
+    tableName: 'users',
+    // normalize email before validate/save to avoid case/whitespace duplicates
+    hooks: {
+        beforeValidate: (user: User) => {
+            if (user.email) user.email = String(user.email).trim().toLowerCase();
+        }
+    },
+    indexes: [
+        { unique: true, fields: ['email'] }
+    ]
+});
 export default User;
