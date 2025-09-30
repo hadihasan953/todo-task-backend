@@ -24,6 +24,21 @@ export default class TaskService {
                     }
                 });
             }
+            // Fetch all assignments for all returned tasks
+            const taskIds = tasks.map((t: any) => t.id);
+            const allAssignments = await TaskAssignment.findAll({ where: { task_id: { [Op.in]: taskIds } } });
+            // Map taskId -> [userId, ...]
+            const assignmentsMap: Record<number, number[]> = {};
+            allAssignments.forEach(a => {
+                if (!assignmentsMap[a.task_id]) assignmentsMap[a.task_id] = [];
+                assignmentsMap[a.task_id].push(a.user_id);
+            });
+            // Attach assignedUserIds to each task
+            tasks = tasks.map((task: any) => {
+                const t = task.toJSON ? task.toJSON() : task;
+                t.assignedUserIds = assignmentsMap[t.id] || [];
+                return t;
+            });
             return tasks;
         } catch (error) {
             throw new Error('Error fetching tasks: ' + (error as Error).message);
