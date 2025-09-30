@@ -35,13 +35,11 @@ export default class TaskController {
     async createTask(req: Request, res: Response, next: NextFunction) {
         try {
             const { id } = req.user || {};
-
             if (id === undefined || id === null) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
-
-            const { title, description } = req.body;
-            const result = await this.taskService.createTask(id, title, description);
+            const { title, description, assignedUserIds } = req.body;
+            const result = await this.taskService.createTask(id, title, description, assignedUserIds);
             res.status(200).json({
                 status: "success",
                 message: "Task created successfully",

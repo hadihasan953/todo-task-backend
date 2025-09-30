@@ -21,11 +21,10 @@ export default class UserRouter {
             this.userController.registerUser
         );
 
-        // Admin-only user listing
+        // All authenticated users can fetch user list
         this.router.get(
             "/users",
             authorize,
-            authorizeAdmin,
             this.userController.getAllUsers
         );
     }

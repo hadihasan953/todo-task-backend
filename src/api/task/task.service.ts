@@ -1,5 +1,6 @@
 import Task from './task.model';
-import { UniqueConstraintError } from 'sequelize';
+import TaskAssignment from '../user_tasks/userTask.model';
+import { UniqueConstraintError, Op } from 'sequelize';
 
 export default class TaskService {
     public async getTasks(id: number, role: string) {
@@ -10,9 +11,16 @@ export default class TaskService {
             if (userRole === 'admin') {
                 tasks = await Task.findAll();
             } else {
+                // Find task IDs assigned to this user
+                const assignments = await TaskAssignment.findAll({ where: { user_id: userId } });
+                const assignedTaskIds = assignments.map(a => a.task_id);
+
                 tasks = await Task.findAll({
                     where: {
-                        createdBy: userId
+                        [Op.or]: [
+                            { createdBy: userId },
+                            assignedTaskIds.length > 0 ? { id: { [Op.in]: assignedTaskIds } } : {}
+                        ]
                     }
                 });
             }
@@ -22,7 +30,7 @@ export default class TaskService {
         }
     }
 
-    public async createTask(id: number, title: string, description: string) {
+    public async createTask(id: number, title: string, description: string, assignedUserIds?: number[]) {
         const userId = id;
         try {
             // compute smallest missing positive integer id (start from 1)
@@ -82,6 +90,15 @@ export default class TaskService {
                 throw new Error('Could not create task after retries.');
             }
 
+            // Assign users if provided
+            if (assignedUserIds && Array.isArray(assignedUserIds) && assignedUserIds.length > 0) {
+                // Remove duplicates
+                const uniqueUserIds = Array.from(new Set(assignedUserIds));
+                await TaskAssignment.bulkCreate(
+                    uniqueUserIds.map(user_id => ({ task_id: task.id, user_id })),
+                    { ignoreDuplicates: true }
+                );
+            }
             return task;
         } catch (error) {
             throw new Error('Error creating task: ' + (error as Error).message);
@@ -98,11 +115,60 @@ export default class TaskService {
                 throw new Error('Task not found');
             }
             const taskOwner = (task as any).createdBy;
-            if (userRole !== 'admin' && taskOwner !== userId) {
+            const TaskAssignment = require('../user_tasks/userTask.model').default;
+            let allowedFields: string[] = [];
+            let isAssigned = false;
+            const assignment = await TaskAssignment.findOne({ where: { user_id: userId, task_id: taskID } });
+            if (assignment) isAssigned = true;
+
+            if (userRole === 'admin') {
+                allowedFields = ['title', 'description', 'status'];
+            } else if (taskOwner === userId || isAssigned) {
+                allowedFields = ['status'];
+            } else {
                 throw new Error('Unauthorized to update this task');
             }
-            await task.update(updates);
-            return task;
+
+            // Filter updates to only allowed fields
+            const filteredUpdates: any = {};
+            for (const key of allowedFields) {
+                if (updates.hasOwnProperty(key)) {
+                    filteredUpdates[key] = updates[key];
+                }
+            }
+            if (Object.keys(filteredUpdates).length === 0) {
+                throw new Error('No valid fields to update');
+            }
+
+            // Special logic for status update to 'completed'
+            if (filteredUpdates.status === 'completed') {
+                if (userRole === 'admin' || taskOwner === userId) {
+                    // Admin or creator: mark task and all assignments as complete
+                    await task.update({ status: 'completed', ...filteredUpdates });
+                    await TaskAssignment.update(
+                        { completed: true },
+                        { where: { task_id: taskID } }
+                    );
+                } else if (isAssigned) {
+                    // Assigned user: mark only their assignment as complete
+                    await TaskAssignment.update(
+                        { completed: true },
+                        { where: { task_id: taskID, user_id: userId } }
+                    );
+                    // Check if all assigned users have completed
+                    const totalAssignments = await TaskAssignment.count({ where: { task_id: taskID } });
+                    const completedAssignments = await TaskAssignment.count({ where: { task_id: taskID, completed: true } });
+                    if (totalAssignments > 0 && totalAssignments === completedAssignments) {
+                        await task.update({ status: 'completed' });
+                    }
+                }
+                // If not admin/creator/assigned, error already thrown above
+                return task;
+            } else {
+                // Normal update (title/description/status not 'completed')
+                await task.update(filteredUpdates);
+                return task;
+            }
         } catch (error) {
             throw new Error('Error updating task: ' + (error as Error).message);
         }
@@ -126,5 +192,16 @@ export default class TaskService {
         } catch (error) {
             throw new Error('Error deleting task: ' + (error as Error).message);
         }
+    }
+
+    public async assignUsersToTask(taskId: number, userIds: number[]) {
+        // Remove duplicates
+        const uniqueUserIds = Array.from(new Set(userIds));
+        // Bulk create assignments with correct column names
+        await TaskAssignment.bulkCreate(
+            uniqueUserIds.map(user_id => ({ task_id: taskId, user_id })),
+            { ignoreDuplicates: true }
+        );
+        return { status: 'success', message: 'Users assigned to task.' };
     }
 }
